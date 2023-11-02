@@ -1,5 +1,5 @@
 # TODO: Change the name of the org 
-org: serverless-namlh20
+org: zerocuder
 app: serverless-todo-app
 service: serverless-todo-app
 
@@ -7,7 +7,7 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
-  - serverless-offline
+  #- serverless-offline
 
 provider:
   name: aws
@@ -26,7 +26,7 @@ provider:
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    ATTACHMENT_S3_BUCKET: serverless-c4-todo-images-${self:provider.stage}
+    S3_BUCKET: mys3-bucket267208235270-serverless-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
   logs:

@@ -11,13 +11,11 @@ const logger = createLogger('TodosAccess')
 
 // TODO: Implement the dataLayer logic
 
-const TODOS_TABLE = process.env.TODOS_TABLE
-
 export class TodoAccess {
-
     constructor(
-        private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
-        private readonly todosTable = process.env.TODOS_TABLE
+        private readonly docClient: DocumentClient = createDynamoDBClient(),
+        private readonly todosTable = process.env.TODOS_TABLE,
+        private readonly todosIndex = process.env.TODOS_CREATED_AT_INDEX
     ) { }
 
     async getTodos(userId: string): Promise<TodoItem[]> {
@@ -25,7 +23,8 @@ export class TodoAccess {
 
         const result = await this.docClient
             .query({
-                TableName: TODOS_TABLE,
+                TableName: this.todosTable,
+                IndexName: this.todosIndex,
                 KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues: {
                     ':userId': userId
@@ -39,7 +38,7 @@ export class TodoAccess {
         logger.info(`Creating new todo item: ${newTodo.todoId}`)
         await this.docClient
             .put({
-                TableName: TODOS_TABLE,
+                TableName: this.todosTable,
                 Item: newTodo
             })
             .promise()
@@ -54,7 +53,7 @@ export class TodoAccess {
         logger.info(`Updating a todo item: ${todoId}`)
         await this.docClient
             .update({
-                TableName: TODOS_TABLE,
+                TableName: this.todosTable,
                 Key: { userId, todoId },
                 ConditionExpression: 'attribute_exists(todoId)',
                 UpdateExpression: 'set #n = :n, dueDate = :due, done = :dn',
@@ -71,7 +70,7 @@ export class TodoAccess {
     async deleteTodo(userId: string, todoId: string): Promise<void> {
         await this.docClient
             .delete({
-                TableName: TODOS_TABLE,
+                TableName: this.todosTable,
                 Key: { userId, todoId }
             })
             .promise()
@@ -85,7 +84,7 @@ export class TodoAccess {
         try {
             await this.docClient
                 .update({
-                    TableName: TODOS_TABLE,
+                    TableName: this.todosTable,
                     Key: { userId, todoId },
                     ConditionExpression: 'attribute_exists(todoId)',
                     UpdateExpression: 'set attachmentUrl = :attachmentUrl',
@@ -102,3 +101,15 @@ export class TodoAccess {
         }
     }
 }
+
+function createDynamoDBClient() {
+    if (process.env.IS_OFFLINE) {
+      console.log("Creating a local DynamoDB instance");
+      return new XAWS.DynamoDB.DocumentClient({
+        region: "localhost",
+        endpoint: "http://localhost:8000",
+      });
+    }
+  
+    return new XAWS.DynamoDB.DocumentClient();
+  }
